@@ -1,6 +1,6 @@
 // middleware/authMiddleware.js
 
-const User = require('./models/user');
+const User = require('./models/User');
 // --- Placeholder Authentication Middleware ---
 // NOTE: This is a placeholder. In a production app, this function
 // should decode and verify a JSON Web Token (JWT) from the 'Authorization' header.

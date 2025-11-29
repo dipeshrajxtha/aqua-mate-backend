@@ -1,7 +1,7 @@
 // controllers/profileController.js - Handles profile update logic
 
 // NOTE: This file assumes User model path is correct relative to its location
-const User = require('./models/user');
+const User = require('./models/User');
 // --- Profile Update Logic ---
 exports.updateProfile = async (req, res) => {
     // NOTE: In a real app, you would use req.user.id from an authentication middleware (like JWT)

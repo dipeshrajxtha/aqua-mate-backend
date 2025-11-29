@@ -1,48 +1,49 @@
-// middleware/authMiddleware.js
-
-// CRITICAL FIX: Ensure correct path casing for Linux/Render deployment
+const jwt = require('jsonwebtoken'); 
 const User = require('../models/user'); 
 
-// --- Placeholder Authentication Middleware ---
+/**
+ * Middleware to protect routes by verifying a JWT sent in the Authorization header.
+ * It ensures the token is present, valid, and not expired,
+ * and attaches the authenticated user object (without the password) to req.user.
+ */
 exports.protect = async (req, res, next) => {
     let token;
 
-    // 1. Check if the token exists in the headers (e.g., "Bearer 12345")
+    // 1. Check if the token is present in the Authorization header
     if (
         req.headers.authorization &&
         req.headers.authorization.startsWith('Bearer')
     ) {
         try {
-            // 2. Extract the token/user ID
+            // Extract the token string from the "Bearer <token>" format
             token = req.headers.authorization.split(' ')[1]; 
             
-            // FIX: Check for a valid extracted token immediately
             if (!token || token === 'undefined' || token === 'null') {
-                 // If the header was present but the token part was missing/empty
-                 return res.status(401).json({ message: 'Not authorized, token value is missing or invalid.' });
+                return res.status(401).json({ message: 'Not authorized, token value is missing or invalid.' });
             }
 
-            // 3. Find the user using the token (ID)
-            const user = await User.findById(token).select('-password');
+            // 2. Verify the token using the secret key
+            const decoded = jwt.verify(token, process.env.JWT_SECRET); 
+
+            // 3. Find the user based on the decoded ID
+            const user = await User.findById(decoded.id).select('-password'); 
             
-            // 4. Check if a user was found with that ID
             if (!user) {
-                // If the user ID is valid but no user exists in the DB
                 return res.status(401).json({ message: 'Not authorized, user not found.' });
             }
             
-            // 5. Attach the user and move on
+            // 4. Attach the user object to the request for access in controllers
             req.user = user; 
-            next(); // Move to the next middleware/controller
+            next();
 
         } catch (error) {
-            console.error('Auth Middleware Error:', error);
-            // FIX: Catch any extraction or database lookup errors and return guaranteed JSON
+            // This line is around the one reported (line 30)
+            console.error('Auth Middleware Error:', error); 
+            // Handle token failure (e.g., signature invalid, expired)
             return res.status(401).json({ message: 'Not authorized, token failed.' });
         }
     } else {
-        // 6. No token provided at all
-        // FIX: Use 'return' to ensure the execution stops here and sends JSON
+        // If no token is provided in the header
         return res.status(401).json({ message: 'Not authorized, no token provided.' });
     }
 };

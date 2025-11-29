@@ -1,3 +1,5 @@
+// server.js - Final version
+
 const express = require('express');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
@@ -20,8 +22,9 @@ app.use('/uploads', express.static('uploads'));
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
-// Add a dedicated route for profile updates that might involve files
 app.use('/api/profile', require('./routes/profileRoutes')); 
+// 💡 NEW LINE ADDED: Mount the Reminder routes
+app.use('/api/reminders', require('./routes/reminderRoutes')); 
 
 // Start server
 const PORT = process.env.PORT || 3000;

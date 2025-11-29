@@ -1,7 +1,7 @@
 // controllers/profileController.js
 
 // 🚨 CRITICAL FIX: Ensure correct path and casing for Linux/Render deployment
-const User = require('../models/User'); 
+const User = require('../models/user'); 
 
 // Placeholder to export profile update logic
 exports.updateProfile = async (req, res) => {

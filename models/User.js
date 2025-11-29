@@ -1,4 +1,4 @@
-// models/User.js - Defines the MongoDB User Schema and logic
+// models/user.js - Defines the MongoDB User Schema and logic
 
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');

@@ -1,36 +1,39 @@
 // models/Reminder.js
+
 const mongoose = require('mongoose');
 
 const reminderSchema = new mongoose.Schema({
-    // Link the reminder to the user who created it (essential)
+    // CRITICAL: Link the reminder to a user
     user: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User', // Assumes your User model is named 'User'
-        required: true,
+        ref: 'User', // Must match the name of your User model
+        required: true // Ensures only authenticated users can create reminders
     },
     tankName: {
         type: String,
-        required: [true, 'Please provide a tank name for the reminder'],
-        trim: true,
+        required: [true, 'Tank name is required'],
+        trim: true
     },
-    type: {
+    reminderType: {
         type: String,
-        enum: ['fishFeed', 'waterChange', 'tankCleaning', 'filterWash'],
-        required: [true, 'Please select a reminder type'],
+        required: [true, 'Reminder type is required']
+        // You might add an enum here: enum: ['Fish Feed', 'Water Change', 'Tank Cleaning', 'Filter Wash']
     },
-    dueDateTime: {
-        type: Date,
-        required: [true, 'Please provide a scheduled date and time'],
+    reminderDate: {
+        type: Date, // Store as a proper Date object
+        required: [true, 'Reminder date is required']
     },
-    status: {
-        type: String,
-        enum: ['upcoming', 'completed', 'missed'],
-        default: 'upcoming',
+    reminderTime: {
+        type: String, // Store time as a string (HH:mm format) or adjust to Date
+        required: [true, 'Reminder time is required']
     },
     createdAt: {
         type: Date,
-        default: Date.now,
-    },
+        default: Date.now
+    }
+}, {
+    // This setting ensures Mongoose adds the 'updatedAt' field automatically
+    timestamps: true 
 });
 
 module.exports = mongoose.model('Reminder', reminderSchema);

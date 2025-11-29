@@ -1,7 +1,7 @@
 // controllers/authController.js - Contains the core logic for auth operations
 
 // NOTE: This file assumes User model path is correct relative to its location
-const User = require('./models/User'); 
+const User = require('./models/user'); 
 
 // --- User Registration Logic ---
 exports.register = async (req, res) => {

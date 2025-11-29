@@ -15,16 +15,18 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// IMPORTANT: Serve static files from the 'uploads' folder for profile pictures
+app.use('/uploads', express.static('uploads')); 
+
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
+// Add a dedicated route for profile updates that might involve files
+app.use('/api/profile', require('./routes/profileRoutes')); 
 
 // Start server
 const PORT = process.env.PORT || 3000;
-// CRITICAL FIX: Explicitly set the host to '0.0.0.0' so the server listens on all interfaces.
-// This allows the Android emulator (10.0.2.2) to reach the host machine.
 const HOST = '0.0.0.0'; 
 
 app.listen(PORT, HOST, () => {
-  // Console output now confirms the host setting
-  console.log(`Server running on http://${HOST}:${PORT}`); 
+  console.log(`Server running on http://${HOST}:${PORT}`); 
 });

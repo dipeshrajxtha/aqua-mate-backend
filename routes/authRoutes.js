@@ -1,9 +1,15 @@
-// routes/authRoutes.js
+// routes/authRoutes.js - Handles user registration and login endpoints
+
 const express = require('express');
 const router = express.Router();
-const { registerUser, loginUser } = require('../controllers/authController');
+const authController = require('../controllers/authController');
 
-router.post('/register', registerUser);
-router.post('/login', loginUser);
+// POST /api/auth/register
+// Endpoint for user registration
+router.post('/register', authController.register);
+
+// POST /api/auth/login
+// Endpoint for user login
+router.post('/login', authController.login);
 
 module.exports = router;

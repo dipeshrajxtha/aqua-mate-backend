@@ -1,40 +1,40 @@
-// middleware/uploadMiddleware.js - Configures multer for file uploads
+// middleware/uploadMiddleware.js
 
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 
-// Create the uploads directory if it doesn't exist
-const uploadsDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir);
-}
-
-// Set up storage configuration for Multer
+// --- 1. Storage Configuration ---
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, uploadsDir); // Files will be stored in the 'uploads' directory
-    },
-    filename: (req, file, cb) => {
-        // Create a unique filename: fieldname-timestamp.ext
-        cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
-    },
+  // Destination where the file will be saved
+  destination: (req, file, cb) => {
+    // You must ensure this 'uploads/' directory exists on your server's filesystem
+    cb(null, 'uploads/'); 
+  },
+  // Filename configuration
+  filename: (req, file, cb) => {
+    // Create a unique filename: fieldname-timestamp.ext
+    cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
+  },
 });
 
-// File filter (optional: ensure only images are uploaded)
+// --- 2. File Filter (Optional but recommended) ---
 const fileFilter = (req, file, cb) => {
-    if (file.mimetype.startsWith('image')) {
-        cb(null, true);
-    } else {
-        cb(new Error('Only image files are allowed!'), false);
-    }
+  // Check file type to accept only images
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true); // Accept file
+  } else {
+    // Reject file with an error message
+    cb(new Error('Only image files are allowed!'), false); 
+  }
 };
 
-// Initialize Multer
+// --- 3. Multer Instance ---
 const upload = multer({
-    storage: storage,
-    limits: { fileSize: 1024 * 1024 * 5 }, // 5MB limit
-    fileFilter: fileFilter,
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 1024 * 1024 * 5 // 5 MB file size limit
+  }
 });
 
 module.exports = upload;

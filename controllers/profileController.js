@@ -1,62 +1,57 @@
-// controllers/profileController.js - Handles profile update logic
+// controllers/profileController.js
 
-// NOTE: This file assumes User model path is correct relative to its location
-const User = require('../models/user');
-// --- Profile Update Logic ---
+// 🚨 CRITICAL FIX: Ensure correct path and casing for Linux/Render deployment
+const User = require('../models/User'); 
+
+// Placeholder to export profile update logic
 exports.updateProfile = async (req, res) => {
-    // NOTE: In a real app, you would use req.user.id from an authentication middleware (like JWT)
-    // For now, we will assume the userId is passed in the body for testing purposes.
-    const { userId, fullName, dob } = req.body;
+  // The 'protect' middleware should have attached the user's ID to req.user
+  const userId = req.body.userId || (req.user ? req.user._id : null); 
+
+  if (!userId) {
+    return res.status(401).json({ message: 'User ID not provided or unauthorized.' });
+  }
+
+  try {
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    // --- 1. Update Text Fields ---
+    user.fullName = req.body.fullName || user.fullName;
+    user.dob = req.body.dob || user.dob;
+    // Assuming gender is not currently editable, but should be handled here if it were.
+
+    // --- 2. Handle File Upload (Multer result) ---
+    if (req.file) {
+      // Multer puts the file info in req.file.path
+      // The path is relative to the server root (e.g., uploads/profilePicture-12345.jpg)
+      
+      // We store the relative path for the frontend to access later
+      // E.g., /uploads/filename.jpg
+      user.profilePicture = '/' + req.file.path.replace(/\\/g, "/"); 
+    }
     
-    // Check for user ID (replace with auth check later)
-    if (!userId) {
-        return res.status(400).json({ message: 'User ID is required for update.' });
-    }
+    // --- 3. Save Changes ---
+    const updatedUser = await user.save();
 
-    try {
-        let updateFields = {};
+    // --- 4. Return the Updated User Object (Exclude password) ---
+    // The backend MUST return JSON for the Flutter app to not throw FormatException
+    res.status(200).json({
+      _id: updatedUser._id,
+      fullName: updatedUser.fullName,
+      email: updatedUser.email,
+      gender: updatedUser.gender,
+      dob: updatedUser.dob,
+      profilePicture: updatedUser.profilePicture,
+      // You may need to update the UserSession in Flutter with the full updated model
+    });
 
-        // 1. Handle Profile Picture Upload (handled by multer middleware)
-        if (req.file) {
-            // The file path where Multer saved the image
-            // Assuming the server is running on http://10.0.2.2:3000
-            // and files are served from /uploads
-            const fileUrl = `/uploads/${req.file.filename}`;
-            updateFields.profilePicture = fileUrl;
-        }
-
-        // 2. Handle Name and DOB Update
-        if (fullName) {
-            updateFields.fullName = fullName;
-        }
-        if (dob) {
-            // MongoDB accepts the ISO date string directly
-            updateFields.dob = dob;
-        }
-
-        // 3. Perform the update in MongoDB
-        const updatedUser = await User.findByIdAndUpdate(
-            userId,
-            { $set: updateFields },
-            { new: true, runValidators: true } // Return the new document and run schema validation
-        );
-
-        if (!updatedUser) {
-            return res.status(404).json({ message: 'User not found.' });
-        }
-
-        // 4. Respond with the new user details
-        res.status(200).json({
-            message: 'Profile updated successfully.',
-            userId: updatedUser._id,
-            fullName: updatedUser.fullName,
-            gender: updatedUser.gender,
-            dob: updatedUser.dob,
-            profilePicture: updatedUser.profilePicture,
-        });
-
-    } catch (err) {
-        console.error('Update Profile Error:', err.message);
-        res.status(500).json({ message: 'Server error during profile update.', error: err.message });
-    }
+  } catch (error) {
+    console.error('Profile update error:', error);
+    // 🚨 IMPORTANT: Ensure we always return a JSON error response, NOT let Express return HTML
+    res.status(500).json({ message: 'Server error during profile update.', details: error.message });
+  }
 };

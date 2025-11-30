@@ -21,7 +21,7 @@ const UserSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Please add a password'],
         minlength: 6,
-        select: false // Prevents the password from being returned in standard queries
+        select: false 
     },
     gender: {
         type: String,
@@ -30,12 +30,11 @@ const UserSchema = new mongoose.Schema({
     },
     dob: {
         type: Date,
-        // Added required constraint based on Flutter validation
         required: [true, 'Please add your date of birth'] 
     },
     profilePicture: {
         type: String,
-        default: 'https://i.imgur.com/G5g2mJc.png' // Default image placeholder
+        default: 'https://i.imgur.com/G5g2mJc.png' 
     },
     createdAt: {
         type: Date,
@@ -45,30 +44,23 @@ const UserSchema = new mongoose.Schema({
 
 // --- Middleware: Encrypt Password using bcrypt before saving ---
 UserSchema.pre('save', async function (next) {
-    // Only run this function if the password was actually modified
     if (!this.isModified('password')) {
         return next();
     }
     
-    // 🔥 FIX: Wrap asynchronous operations in try...catch to prevent unhandled errors
-    // from crashing Mongoose's middleware chain.
+    // CRITICAL FIX: Prevents "next is not a function" crash from unhandled bcrypt errors
     try {
         const salt = await bcrypt.genSalt(10);
         this.password = await bcrypt.hash(this.password, salt);
-        next(); // Proceed to save after successful hashing
+        next(); 
     } catch (err) {
-        // CRITICAL: Pass the error to the next Mongoose handler.
-        // This is the safest way to fail a 'save' operation.
-        next(err); 
+        next(err); // Fail the save operation gracefully
     }
 });
 
 // --- Method to compare submitted password with hashed password ---
 UserSchema.methods.matchPassword = async function (enteredPassword) {
-    // Ensure 'this.password' exists before comparison
     if (!this.password) return false;
-    
-    // bcrypt.compare handles the hashing difference check
     return await bcrypt.compare(enteredPassword, this.password);
 };
 

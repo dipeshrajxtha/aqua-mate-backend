@@ -6,13 +6,11 @@ const jwtSecret = process.env.JWT_SECRET;
 
 // Helper function to generate a JWT
 const generateToken = (id) => {
-    // Check if the secret is available before signing
     if (!jwtSecret) {
         throw new Error("JWT_SECRET environment variable is not set.");
     }
-    // Signs the token with the user ID as the payload
     return jwt.sign({ id }, jwtSecret, {
-        expiresIn: '30d', // Token valid for 30 days
+        expiresIn: '30d', 
     });
 };
 
@@ -20,57 +18,47 @@ const generateToken = (id) => {
 exports.register = async (req, res) => {
     const { fullName, email, password, gender, dob } = req.body;
 
-    // 1. Basic Request Body Validation
     if (!email || !password || !fullName || !gender || !dob) {
         return res.status(400).json({ message: 'Missing required fields: full name, email, password, gender, and date of birth.' });
     }
 
     try {
-        // 2. Check if user already exists
         let user = await User.findOne({ email });
         if (user) {
             return res.status(409).json({ message: 'User already exists with this email address.' });
         }
 
-        // 3. Create and save new user
         user = new User({
             fullName,
             email,
             password,
             gender,
-            // Ensure DOB is parsed correctly
             dob: new Date(dob), 
         });
 
-        // The save operation triggers password hashing in the User model
         await user.save();
 
-        // 4. Respond with success message
         res.status(201).json({ 
             message: 'User registered successfully. Please log in.',
             userId: user._id,
         });
 
     } catch (err) {
-        // 🔥 CRITICAL FIX: Robust error handling to prevent 500 crashes
-
+        // Handles Mongoose errors caught from the model layer
         console.error('Registration Error:', err); 
 
         let message = 'An unexpected server error occurred during registration.';
         
-        // Handle Mongoose Validation Errors (e.g., password too short, invalid email format)
         if (err.name === 'ValidationError') {
              message = 'Validation failed: ' + Object.values(err.errors).map(val => val.message).join(', ');
              return res.status(400).json({ message }); 
         }
         
-        // Handle Mongoose Duplicate Key Errors (email unique constraint)
         if (err.code === 11000) {
             message = 'A user with this email already exists.';
             return res.status(409).json({ message });
         }
 
-        // Default 500 internal server error
         res.status(500).json({ message: message, error: err.message });
     }
 };

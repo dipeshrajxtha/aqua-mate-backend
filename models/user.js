@@ -34,7 +34,7 @@ const UserSchema = new mongoose.Schema({
     },
     profilePicture: {
         type: String,
-        default: 'https://i.imgur.com/G5g2mJc.png' 
+        default: 'https://i.imgur.com/G5g2mJc.png'
     },
     createdAt: {
         type: Date,
@@ -42,26 +42,27 @@ const UserSchema = new mongoose.Schema({
     }
 });
 
-// --- Middleware: Encrypt Password using bcrypt before saving ---
-UserSchema.pre('save', async function (next) {
-    if (!this.isModified('password')) {
-        return next();
-    }
-    
-    // CRITICAL FIX: Prevents "next is not a function" crash from unhandled bcrypt errors
-    try {
-        const salt = await bcrypt.genSalt(10);
-        this.password = await bcrypt.hash(this.password, salt);
-        next(); 
-    } catch (err) {
-        next(err); // Fail the save operation gracefully
-    }
+
+// ---------------------------------------------------------
+// 🔒 PASSWORD HASHING MIDDLEWARE (SAFE + CORRECT)
+// ---------------------------------------------------------
+// IMPORTANT: Do NOT use (next). Async pre-hooks must NOT call next().
+UserSchema.pre('save', async function () {
+    // Only hash password if modified or new
+    if (!this.isModified('password')) return;
+
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
 });
 
-// --- Method to compare submitted password with hashed password ---
+
+// ---------------------------------------------------------
+// 🔐 COMPARE PASSWORD METHOD
+// ---------------------------------------------------------
 UserSchema.methods.matchPassword = async function (enteredPassword) {
     if (!this.password) return false;
     return await bcrypt.compare(enteredPassword, this.password);
 };
+
 
 module.exports = mongoose.model('User', UserSchema);

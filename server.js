@@ -1,56 +1,40 @@
-// server.js (or index.js) - Main application entry point
+// server.js (Main application entry point)
 
 const express = require('express');
 const dotenv = require('dotenv');
-const connectDB = require('./config/db'); // Function to connect to MongoDB
+const connectDB = require('./config/db'); 
 const cors = require('cors');
 
-// Load environment variables immediately
+// Load environment variables
 dotenv.config();
 
-// Connect to MongoDB
-// NOTE: connectDB is an asynchronous function. It's usually best to 
-// ensure the server only starts if the connection is successful.
+// Connect to MongoDB (Ensure you have config/db.js and .env set up)
 connectDB(); 
 
 const app = express();
 
 // --- Middleware ---
-
-// 1. CORS for cross-origin requests
 app.use(cors());
-
-// 2. Body parser for JSON
 app.use(express.json());
-
-// 3. Static file serving (e.g., for profile pictures)
-// IMPORTANT: Serve static files from the 'uploads' folder
 app.use('/uploads', express.static('uploads')); 
 
 // --- Routes ---
-
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/profile', require('./routes/profileRoutes')); 
+// Register the new aquarium route
+app.use('/api/aquariums', require('./routes/aquariumRoutes')); 
 
-// --- Deployment Health Check (Good Practice) ---
-// Add a simple route to verify the server is alive
+
+// --- Deployment Health Check ---
 app.get('/', (req, res) => {
-    res.send('AquaMate API is running...');
+    res.send('AquaMate API is running...');
 });
 
 // --- Start Server ---
 
 const PORT = process.env.PORT || 3000;
-// Use '0.0.0.0' for deployment environments like Render
 const HOST = '0.0.0.0'; 
 
-// Use the standard listen call. If `connectDB` had fatal errors, 
-// the Node process should ideally exit before reaching this point.
 app.listen(PORT, HOST, () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on http://localhost:${PORT}`); 
-  // Note: Local logs show localhost, but Render uses 0.0.0.0
+  console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on http://localhost:${PORT}`); 
 });
-
-// *NOTE on Deployment:* // For Render, ensure your environment variable MONGO_URI is correctly set. 
-// If your connectDB function throws a hard error, the process will exit, 
-// which is the intended behavior when the database is unavailable.

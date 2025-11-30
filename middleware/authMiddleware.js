@@ -1,48 +1,42 @@
 // middleware/authMiddleware.js
+const User = require('../models/user'); // Ensure correct casing
 
-// CRITICAL FIX: Ensure correct path casing for Linux/Render deployment
-const User = require('../models/user'); 
-
-// --- Placeholder Authentication Middleware ---
+// --- Temporary ID-as-Token Authentication Middleware ---
+// NOTE: For production, this MUST be replaced by full JWT implementation.
 exports.protect = async (req, res, next) => {
     let token;
-
-    // 1. Check if the token exists in the headers (e.g., "Bearer 12345")
+    
+    // 1. Check for the token in the Authorization header ("Bearer <ID>")
     if (
         req.headers.authorization &&
         req.headers.authorization.startsWith('Bearer')
     ) {
-        try {
-            // 2. Extract the token/user ID
-            token = req.headers.authorization.split(' ')[1]; 
-            
-            // FIX: Check for a valid extracted token immediately
-            if (!token || token === 'undefined' || token === 'null') {
-                 // If the header was present but the token part was missing/empty
-                 return res.status(401).json({ message: 'Not authorized, token value is missing or invalid.' });
-            }
+        token = req.headers.authorization.split(' ')[1]; 
+    }
 
-            // 3. Find the user using the token (ID)
-            const user = await User.findById(token).select('-password');
-            
-            // 4. Check if a user was found with that ID
-            if (!user) {
-                // If the user ID is valid but no user exists in the DB
-                return res.status(401).json({ message: 'Not authorized, user not found.' });
-            }
-            
-            // 5. Attach the user and move on
-            req.user = user; 
-            next(); // Move to the next middleware/controller
+    // Fallback: If no token in header, you might check other places (not recommended)
+    if (!token) {
+        return res.status(401).json({ message: 'Not authorized, no token provided in the Authorization header.' });
+    }
 
-        } catch (error) {
-            console.error('Auth Middleware Error:', error);
-            // FIX: Catch any extraction or database lookup errors and return guaranteed JSON
-            return res.status(401).json({ message: 'Not authorized, token failed.' });
+    try {
+        // 2. We are assuming the token IS the user's MongoDB ID
+        const userId = token;
+        
+        const user = await User.findById(userId).select('-password');
+        
+        // 3. Check if a user was found with that ID
+        if (!user) {
+            return res.status(401).json({ message: 'Not authorized, user ID (token) is invalid or user not found.' });
         }
-    } else {
-        // 6. No token provided at all
-        // FIX: Use 'return' to ensure the execution stops here and sends JSON
-        return res.status(401).json({ message: 'Not authorized, no token provided.' });
+        
+        // 4. Attach the user object (including ID) to the request
+        req.user = user; 
+        next(); // Move to the controller
+
+    } catch (error) {
+        console.error('Temporary Auth Middleware Error:', error);
+        // This catches malformed IDs that Mongoose can't look up
+        return res.status(401).json({ message: 'Not authorized, token failed validation (likely a malformed ID).' });
     }
 };

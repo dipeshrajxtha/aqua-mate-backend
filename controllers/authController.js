@@ -1,108 +1,131 @@
-// controllers/authController.js - Contains the core logic for auth operations
+// controllers/authController.js
+// Handles user registration & login with JWT authentication
 
-const User = require('../models/user'); 
-const jwt = require('jsonwebtoken'); 
-// Ensure your environment is set up with JWT_SECRET
+const User = require('../models/user');
+const jwt = require('jsonwebtoken');
+
+// Make sure `.env` has JWT_SECRET defined
 const jwtSecret = process.env.JWT_SECRET;
 
-// Helper function to generate a JWT
+// Helper → Create JWT token
 const generateToken = (id) => {
     if (!jwtSecret) {
         throw new Error("JWT_SECRET environment variable is not set.");
     }
     return jwt.sign({ id }, jwtSecret, {
-        expiresIn: '30d', 
+        expiresIn: '30d',
     });
 };
 
-// --- User Registration Logic ---
+// ---------------------------
+// 🚀 REGISTER USER
+// ---------------------------
 exports.register = async (req, res) => {
     const { fullName, email, password, gender, dob } = req.body;
 
+    // Validate required fields
     if (!email || !password || !fullName || !gender || !dob) {
-        return res.status(400).json({ message: 'Missing required fields: full name, email, password, gender, and date of birth.' });
+        return res.status(400).json({
+            message: 'Missing required fields: full name, email, password, gender, and date of birth.'
+        });
     }
 
     try {
+        // Check if email already exists
         let user = await User.findOne({ email });
         if (user) {
             return res.status(409).json({ message: 'User already exists with this email address.' });
         }
 
+        // Create user
         user = new User({
             fullName,
             email,
             password,
             gender,
-            dob: new Date(dob), 
+            dob: new Date(dob)
         });
 
         await user.save();
 
-        res.status(201).json({ 
+        // Registration successful
+        res.status(201).json({
             message: 'User registered successfully. Please log in.',
-            userId: user._id,
+            userId: user._id
         });
 
     } catch (err) {
-        // Handles Mongoose errors caught from the model layer
-        console.error('Registration Error:', err); 
+        console.error('Registration Error:', err);
 
-        let message = 'An unexpected server error occurred during registration.';
-        
+        // Validation (ex: missing fields in schema)
         if (err.name === 'ValidationError') {
-             message = 'Validation failed: ' + Object.values(err.errors).map(val => val.message).join(', ');
-             return res.status(400).json({ message }); 
-        }
-        
-        if (err.code === 11000) {
-            message = 'A user with this email already exists.';
-            return res.status(409).json({ message });
+            const message = 'Validation failed: ' +
+                Object.values(err.errors).map(val => val.message).join(', ');
+            return res.status(400).json({ message });
         }
 
-        res.status(500).json({ message: message, error: err.message });
+        // Duplicate email error
+        if (err.code === 11000) {
+            return res.status(409).json({ message: 'A user with this email already exists.' });
+        }
+
+        res.status(500).json({
+            message: 'An unexpected server error occurred during registration.',
+            error: err.message
+        });
     }
 };
 
-// --- User Login Logic (FIXED) ---
+// ---------------------------
+// 🔑 LOGIN USER (JWT)
+// ---------------------------
 exports.login = async (req, res) => {
     const { email, password } = req.body;
 
+    // Validate inputs
     if (!email || !password) {
         return res.status(400).json({ message: 'Please provide email and password.' });
     }
 
     try {
-        const user = await User.findOne({ email }).select('+password'); 
-        
+        // Find user & include password
+        const user = await User.findOne({ email }).select('+password');
+
         if (!user) {
-            return res.status(401).json({ message: 'Invalid credentials (Email not found).' });
+            return res.status(401).json({
+                message: 'Invalid credentials (Email not found).'
+            });
         }
 
+        // Compare passwords
         const isMatch = await user.matchPassword(password);
         if (!isMatch) {
-            return res.status(401).json({ message: 'Invalid credentials (Incorrect password).' });
+            return res.status(401).json({
+                message: 'Invalid credentials (Incorrect password).'
+            });
         }
 
-        // Generate the JWT token upon successful login
+        // 🔥 Generate JWT
         const token = generateToken(user._id);
 
-        // Respond with the token and user data wrapped inside the 'user' key
+        // Successful login response
         res.status(200).json({
             message: 'Login successful.',
-            token: token, 
-            // VITAL FIX: Wrap all user properties inside a 'user' object
-            user: { 
+            token: token,
+            user: {
                 userId: user._id,
                 fullName: user.fullName,
                 gender: user.gender,
                 dob: user.dob,
-                profilePicture: user.profilePicture
+                profilePicture: user.profilePicture || null
             }
         });
 
     } catch (err) {
         console.error('Login Error:', err.message);
-        res.status(500).json({ message: 'Server error during login.', error: err.message });
+        res.status(500).json({
+            message: 'Server error during login.',
+            error: err.message
+        });
     }
 };

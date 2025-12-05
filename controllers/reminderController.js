@@ -2,59 +2,80 @@
 const Reminder = require('../models/Reminder');
 const asyncHandler = require('express-async-handler');
 
-// @desc    Create a new reminder
-// @route   POST /api/reminders
-// @access  Private
+// ---------------------------------------------------------
+// CREATE REMINDER  (Private)
+// POST /api/reminders
+// ---------------------------------------------------------
 const createReminder = asyncHandler(async (req, res) => {
-    const userId = req.user.id;
-    
-    // Expecting tankName, type (enum string), and dueDateTime (ISO string)
-    const { tankName, type, dueDateTime } = req.body; 
-    
+    const userId = req.user._id; // <-- FIXED: protect middleware sets req.user._id
+
+    const { tankName, type, dueDateTime } = req.body;
+
     if (!tankName || !type || !dueDateTime) {
-        res.status(400);
-        throw new Error('Please provide the tank name, type, and scheduled date/time.');
+        return res.status(400).json({
+            success: false,
+            message: 'Please provide the tank name, type, and scheduled date/time.'
+        });
     }
 
-    const newReminder = await Reminder.create({
+    const reminder = await Reminder.create({
         user: userId,
         tankName,
         type,
-        dueDateTime: new Date(dueDateTime) // Converts ISO string to Date object
+        dueDateTime: new Date(dueDateTime)
     });
 
-    res.status(201).json({ success: true, data: newReminder });
+    res.status(201).json({
+        success: true,
+        data: reminder
+    });
 });
 
-// @desc    Get all reminders
-// @route   GET /api/reminders
-// @access  Private
+// ---------------------------------------------------------
+// GET ALL REMINDERS  (Private)
+// GET /api/reminders
+// ---------------------------------------------------------
 const getReminders = asyncHandler(async (req, res) => {
-    const reminders = await Reminder.find({ user: req.user.id })
-        .sort({ dueDateTime: 1 }); // Sort by time, ascending
+    const userId = req.user._id;
 
-    res.status(200).json({ success: true, data: reminders });
+    const reminders = await Reminder.find({ user: userId })
+        .sort({ dueDateTime: 1 });
+
+    res.status(200).json({
+        success: true,
+        data: reminders
+    });
 });
 
-// @desc    Delete a reminder (Mark as complete)
-// @route   DELETE /api/reminders/:id
-// @access  Private
+// ---------------------------------------------------------
+// DELETE REMINDER (Private)
+// DELETE /api/reminders/:id
+// ---------------------------------------------------------
 const deleteReminder = asyncHandler(async (req, res) => {
+    const userId = req.user._id;
+
     const reminder = await Reminder.findById(req.params.id);
 
     if (!reminder) {
-        res.status(404);
-        throw new Error('Reminder not found.');
+        return res.status(404).json({
+            success: false,
+            message: 'Reminder not found.'
+        });
     }
 
-    if (reminder.user.toString() !== req.user.id) {
-        res.status(401);
-        throw new Error('Not authorized to delete this reminder.');
+    if (reminder.user.toString() !== userId.toString()) {
+        return res.status(401).json({
+            success: false,
+            message: 'Not authorized to delete this reminder.'
+        });
     }
-    
+
     await reminder.deleteOne();
 
-    res.status(200).json({ success: true, data: { id: req.params.id } });
+    res.status(200).json({
+        success: true,
+        data: { id: req.params.id }
+    });
 });
 
 module.exports = {

@@ -1,5 +1,4 @@
-// models/user.js - Defines the MongoDB User Schema and logic
-
+// models/user.js
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
@@ -21,7 +20,7 @@ const UserSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Please add a password'],
         minlength: 6,
-        select: false 
+        select: false
     },
     gender: {
         type: String,
@@ -30,7 +29,7 @@ const UserSchema = new mongoose.Schema({
     },
     dob: {
         type: Date,
-        required: [true, 'Please add your date of birth'] 
+        required: [true, 'Please add your date of birth']
     },
     profilePicture: {
         type: String,
@@ -42,27 +41,18 @@ const UserSchema = new mongoose.Schema({
     }
 });
 
-
-// ---------------------------------------------------------
-// 🔒 PASSWORD HASHING MIDDLEWARE (SAFE + CORRECT)
-// ---------------------------------------------------------
-// IMPORTANT: Do NOT use (next). Async pre-hooks must NOT call next().
+// Hash password before saving
 UserSchema.pre('save', async function () {
-    // Only hash password if modified or new
     if (!this.isModified('password')) return;
 
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
 });
 
-
-// ---------------------------------------------------------
-// 🔐 COMPARE PASSWORD METHOD
-// ---------------------------------------------------------
+// Compare entered password
 UserSchema.methods.matchPassword = async function (enteredPassword) {
     if (!this.password) return false;
     return await bcrypt.compare(enteredPassword, this.password);
 };
-
 
 module.exports = mongoose.model('User', UserSchema);

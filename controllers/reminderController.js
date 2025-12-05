@@ -3,18 +3,18 @@ const Reminder = require('../models/Reminder');
 const asyncHandler = require('express-async-handler');
 
 // ---------------------------------------------------------
-// CREATE REMINDER  (Private)
+// CREATE REMINDER (Private)
 // POST /api/reminders
 // ---------------------------------------------------------
 const createReminder = asyncHandler(async (req, res) => {
-    const userId = req.user._id; // <-- FIXED: protect middleware sets req.user._id
+    const userId = req.user._id; // set by authMiddleware
 
     const { tankName, type, dueDateTime } = req.body;
 
     if (!tankName || !type || !dueDateTime) {
         return res.status(400).json({
             success: false,
-            message: 'Please provide the tank name, type, and scheduled date/time.'
+            message: 'Please provide tank name, type, and scheduled date/time.'
         });
     }
 
@@ -32,7 +32,7 @@ const createReminder = asyncHandler(async (req, res) => {
 });
 
 // ---------------------------------------------------------
-// GET ALL REMINDERS  (Private)
+// GET ALL REMINDERS (Private)
 // GET /api/reminders
 // ---------------------------------------------------------
 const getReminders = asyncHandler(async (req, res) => {
@@ -63,6 +63,7 @@ const deleteReminder = asyncHandler(async (req, res) => {
         });
     }
 
+    // Ensure the logged-in user owns this reminder
     if (reminder.user.toString() !== userId.toString()) {
         return res.status(401).json({
             success: false,
@@ -81,5 +82,5 @@ const deleteReminder = asyncHandler(async (req, res) => {
 module.exports = {
     createReminder,
     getReminders,
-    deleteReminder,
+    deleteReminder
 };

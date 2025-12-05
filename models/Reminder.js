@@ -12,18 +12,17 @@ const reminderSchema = new mongoose.Schema({
         required: [true, 'Tank name is required'],
         trim: true
     },
-    // Combined date and time field
     dueDateTime: { 
         type: Date,
         required: [true, 'Scheduled date and time is required']
     },
-    type: { // Must match Flutter's toJson() string output
+    type: {
         type: String,
         required: [true, 'Reminder type is required'],
-        enum: ['fishFeed', 'waterChange', 'tankCleaning', 'filterWash'], 
+        enum: ['fishFeed', 'waterChange', 'tankCleaning', 'filterWash'],
     }
 }, {
-    timestamps: true 
+    timestamps: true
 });
 
 module.exports = mongoose.model('Reminder', reminderSchema);

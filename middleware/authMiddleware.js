@@ -1,55 +1,43 @@
+// middleware/authMiddleware.js
+const jwt = require('jsonwebtoken');
 const User = require('../models/user');
+const asyncHandler = require('express-async-handler');
 
-// 🔐 TEMPORARY AUTH MIDDLEWARE
-// Using MongoDB user ID as the "token"
-exports.protect = async (req, res, next) => {
-    try {
-        let token;
+exports.protect = asyncHandler(async (req, res, next) => {
+    let token;
 
-        // --- Extract Token ---
-        if (
-            req.headers.authorization &&
-            req.headers.authorization.startsWith('Bearer')
-        ) {
-            token = req.headers.authorization.split(' ')[1];
-            console.log(`[AUTH] Extracted Token: ${token}`);
-        }
+    // Extract Bearer token
+    if (
+        req.headers.authorization &&
+        req.headers.authorization.startsWith('Bearer')
+    ) {
+        token = req.headers.authorization.split(' ')[1];
+    }
 
-        // --- No Token Found ---
-        if (!token) {
-            console.log('[AUTH] No token found in Authorization header.');
-            return res.status(401).json({
-                message: 'Not authorized: no token provided in the Authorization header.'
-            });
-        }
-
-        // --- Validate MongoDB ObjectId Format ---
-        if (!token.match(/^[0-9a-fA-F]{24}$/)) {
-            console.log(`[AUTH] Invalid ID format: ${token}`);
-            return res.status(401).json({
-                message: 'Not authorized: token is malformed and cannot be processed.'
-            });
-        }
-
-        // --- Lookup User ---
-        const user = await User.findById(token).select('-password');
-
-        if (!user) {
-            console.log(`[AUTH] No user found for ID: ${token}`);
-            return res.status(401).json({
-                message: 'Not authorized: token format is valid but no user exists for this ID.'
-            });
-        }
-
-        // --- Success ---
-        req.user = user;
-        console.log(`[AUTH] Authenticated: ${user.email} (ID: ${token})`);
-        next();
-
-    } catch (error) {
-        console.error('[AUTH] Unexpected error:', error.message);
+    if (!token) {
         return res.status(401).json({
-            message: 'Not authorized: authentication failed due to server error.'
+            message: 'Not authorized, no token provided'
         });
     }
-};
+
+    try {
+        // Verify JWT
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        // Attach user (without password)
+        req.user = await User.findById(decoded.id).select('-password');
+
+        if (!req.user) {
+            return res.status(401).json({
+                message: 'Not authorized, user not found'
+            });
+        }
+
+        next();
+    } catch (error) {
+        console.error('Auth error:', error);
+        return res.status(401).json({
+            message: 'Not authorized, token invalid or expired'
+        });
+    }
+});

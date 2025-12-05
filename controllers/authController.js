@@ -2,6 +2,7 @@
 
 const User = require('../models/user'); 
 const jwt = require('jsonwebtoken'); 
+// Ensure your environment is set up with JWT_SECRET
 const jwtSecret = process.env.JWT_SECRET;
 
 // Helper function to generate a JWT
@@ -63,7 +64,7 @@ exports.register = async (req, res) => {
     }
 };
 
-// --- User Login Logic ---
+// --- User Login Logic (FIXED) ---
 exports.login = async (req, res) => {
     const { email, password } = req.body;
 
@@ -86,15 +87,18 @@ exports.login = async (req, res) => {
         // Generate the JWT token upon successful login
         const token = generateToken(user._id);
 
-        // Respond with the token and user data
+        // Respond with the token and user data wrapped inside the 'user' key
         res.status(200).json({
             message: 'Login successful.',
             token: token, 
-            userId: user._id,
-            fullName: user.fullName,
-            gender: user.gender,
-            dob: user.dob,
-            profilePicture: user.profilePicture
+            // VITAL FIX: Wrap all user properties inside a 'user' object
+            user: { 
+                userId: user._id,
+                fullName: user.fullName,
+                gender: user.gender,
+                dob: user.dob,
+                profilePicture: user.profilePicture
+            }
         });
 
     } catch (err) {

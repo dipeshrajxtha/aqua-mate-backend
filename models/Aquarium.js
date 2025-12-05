@@ -1,50 +1,47 @@
-// models/Aquarium.js
 const mongoose = require('mongoose');
 
 const AquariumSchema = new mongoose.Schema({
-    // Links the tank to the authenticated user
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true,
     },
-    // Form data fields
-    tankName: {
+
+    // Flutter fields (exact names)
+    name: {
         type: String,
-        required: [true, 'Please name your aquarium'],
+        required: true,
         trim: true,
     },
-    capacityLiters: {
+    aquariumType: {
+        type: String,
+        enum: ['FRESHWATER', 'SALTWATER'],
+        required: true,
+    },
+    tankSize: {
         type: Number,
-        required: [true, 'Capacity (Liters) is required'],
-        min: [1, 'Capacity must be greater than 0'],
+        required: true,
+        min: 1,
     },
-    filterType: {
+    tankShape: {
         type: String,
-        enum: ['Hang-on-Back (HOB)', 'Canister', 'Internal', 'Sponge'],
         required: true,
     },
-    heaterNeeded: {
-        type: String,
-        enum: ['Yes', 'No'],
+    temperature: {
+        type: Number,
         required: true,
     },
-    substrateType: {
+    location: {
         type: String,
-        enum: ['Gravel', 'Sand', 'Soil (for planted tanks)', 'Bare Bottom'],
         required: true,
     },
-    isPlanted: {
-        type: Boolean,
-        default: false,
-    },
-    dateCreated: {
-        type: Date,
-        default: Date.now,
-    },
-}, { 
-    // Mongoose option to include createdAt and updatedAt timestamps
-    timestamps: true 
+    description: {
+        type: String,
+        default: '',
+    }
+},
+{
+    timestamps: true
 });
 
 module.exports = mongoose.model('Aquarium', AquariumSchema);

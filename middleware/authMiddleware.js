@@ -1,4 +1,3 @@
-// middleware/authMiddleware.js
 const User = require('../models/user'); // Ensure correct casing
 
 // --- Temporary ID-as-Token Authentication Middleware ---
@@ -12,10 +11,12 @@ exports.protect = async (req, res, next) => {
         req.headers.authorization.startsWith('Bearer')
     ) {
         token = req.headers.authorization.split(' ')[1]; 
+        console.log(`[AUTH] Token extracted: ${token}`); // <-- ADDED LOGGING
     }
 
     // Fallback: If no token in header, you might check other places (not recommended)
     if (!token) {
+        console.log('[AUTH] Error: No token found in Authorization header.'); // <-- ADDED LOGGING
         return res.status(401).json({ message: 'Not authorized, no token provided in the Authorization header.' });
     }
 
@@ -23,20 +24,28 @@ exports.protect = async (req, res, next) => {
         // 2. We are assuming the token IS the user's MongoDB ID
         const userId = token;
         
+        // Check if the token looks like a valid MongoDB ObjectId (24 hex characters)
+        if (!userId.match(/^[0-9a-fA-F]{24}$/)) {
+            console.log(`[AUTH] Error: Token ${userId} is not a valid 24-char MongoDB ID.`); // <-- ADDED LOGGING
+             return res.status(401).json({ message: 'Not authorized, token provided is malformed and cannot be processed.' });
+        }
+        
         const user = await User.findById(userId).select('-password');
         
         // 3. Check if a user was found with that ID
         if (!user) {
-            return res.status(401).json({ message: 'Not authorized, user ID (token) is invalid or user not found.' });
+            console.log(`[AUTH] Error: Valid looking ID ${userId} did not match any user.`); // <-- ADDED LOGGING
+            return res.status(401).json({ message: 'Not authorized, user ID (token) is valid format but user not found.' });
         }
         
         // 4. Attach the user object (including ID) to the request
         req.user = user; 
+        console.log(`[AUTH] Success: User ${user.email} (ID: ${userId}) authenticated.`); // <-- ADDED LOGGING
         next(); // Move to the controller
 
     } catch (error) {
-        console.error('Temporary Auth Middleware Error:', error);
-        // This catches malformed IDs that Mongoose can't look up
-        return res.status(401).json({ message: 'Not authorized, token failed validation (likely a malformed ID).' });
+        // This catches malformed IDs that Mongoose can't look up, or unexpected database errors
+        console.error('[AUTH] Catch Error:', error.message);
+        return res.status(401).json({ message: 'Not authorized, token failed validation (likely an internal server or DB error).' });
     }
 };
